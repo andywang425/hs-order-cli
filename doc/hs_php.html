@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+    <title>订单查询系统</title>
+    <script src="/js/jquery.min.js"></script>
+    <script src="/layer/layer.js"></script>
+    <script src="/layui/layui.js"></script>
+    <link rel="stylesheet" href="/layui/css/layui.css">
+    <link rel="stylesheet" href="/css/jquery-labelauty.css">
+    <script src="/js/jquery-labelauty.js"></script>
+    <script src="/js/clipboard.min.js"></script>
+    <link href="/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="/css/font-awesome.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/AdminLTE.min.css">
+    <link rel="stylesheet" href="/css/buttons.css">
+    <link rel="stylesheet" href="/css/skin-blue.min.css">
+    <link href="/css/global.css" rel="stylesheet" />
+    <style>
+        input.labelauty+label {
+            font: 15px "Microsoft Yahei";
+            height: 23px;
+            color: black;
+            font-weight: bold;
+        }
+
+        .input-group {
+            position: relative;
+            width: 400px;
+            margin: 20px auto;
+            text-align: center;
+        }
+
+        .itemname {
+            width: 100%;
+        }
+    </style>
+    <script>
+        $(function () {
+            $(':input').labelauty({
+                minimum_width: "90px"
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <DIV class="input-group" align="center">
+        <span class="input-group-btn" style="width:100%">
+            <input name="key" id="key" type="text" placeholder="请输入订单号或用户名查询" value="" class="input-sm form-control"
+                style="height:40px;font-size:18px">
+            <input name="condition" type="hidden" value="">
+        </span>
+        <span class="input-group-btn">
+            <input type="button" id="GO" style="height:40px;font-size:18px" class="btn btn-sm btn-primary" value="GO">
+        </span>
+    </div>
+    <div id="result" class="input-group" align="center">
+        <div>
+            <script>
+                Date.prototype.Format = function (fmt) {
+                    var o = {
+                        "M+": this.getMonth() + 1,
+                        "d+": this.getDate(),
+                        "h+": this.getHours(),
+                        "m+": this.getMinutes(),
+                        "s+": this.getSeconds(),
+                        "q+": Math.floor((this.getMonth() + 3) / 3),
+                        "S": this.getMilliseconds()
+                    };
+                    if (/(y+)/.test(fmt))
+                        fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+                    for (var k in o)
+                        if (new RegExp("(" + k + ")").test(fmt))
+                            fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+                    return fmt;
+                }
+                function SetDlState(data, title) {
+                    var index = layer.alert("请输入战网密码前四位(防止误操作)：<input id='bnetpwd' type='text' style='width:50px'>", {
+                        closeBtn: 1,
+                        title: "<font color='red'>" + title + "</font>",
+                        btn: ['确定', '取消'],
+                        btn1: function () {
+                            if ($("#bnetpwd").val().length >= 4) {
+                                $.ajax({
+                                    type: "POST",
+                                    url: window.location.pathname,
+                                    data: data + "&bnetpwd=" + encodeURIComponent($("#bnetpwd").val()),
+                                    success: function (retText) {
+                                        var retJson = JSON.parse(retText);
+                                        if (retJson.code == 1) {
+                                            $("#GO").click();
+                                            layer.alert("设置成功");
+                                        } else {
+                                            layer.alert(retJson.error);
+                                        }
+                                    },
+                                    error: function () { }
+                                });
+                                layer.close(index);
+                            } else {
+                                alert("请输入战网密码前四位");
+                            }
+                        }
+                    });
+                }
+                ; function SetDlBattleMode(data, mode) {
+                    SetDlState(data, "确定要切换到“" + (mode == 2 ? "标准模式" : (mode == 3 ? "狂野模式" : (mode == 4 ? "幻变模式" : "休闲模式"))) + "”模式？");
+                }
+                ; function SetDlHeroes(data) {
+                    var heroes = 0
+                    $("input[id='heroes']").each(function (index, element) {
+                        if ($("input[id='heroes']")[index].checked) {
+                            switch (parseInt($(this).val())) {
+                                case 1:
+                                    heroes |= 0x1;
+                                    break;
+                                case 2:
+                                    heroes |= 0x2;
+                                    break;
+                                case 3:
+                                    heroes |= 0x4;
+                                    break;
+                                case 4:
+                                    heroes |= 0x8;
+                                    break;
+                                case 5:
+                                    heroes |= 0x10;
+                                    break;
+                                case 6:
+                                    heroes |= 0x20;
+                                    break;
+                                case 7:
+                                    heroes |= 0x40;
+                                    break;
+                                case 8:
+                                    heroes |= 0x80;
+                                    break;
+                                case 9:
+                                    heroes |= 0x100;
+                                    break;
+                                case 10:
+                                    heroes |= 0x200;
+                                    break;
+                                case 11:
+                                    heroes |= 0x400;
+                                    break;
+                            }
+                        }
+                    });
+                    if (heroes > 0x0 && heroes < 0xfff) {
+                        SetDlState(data + "&battleheroes=" + heroes, "确定要设置对战英雄？");
+                    } else {
+                        layer.alert("请选择至少一位对战英雄");
+                    }
+                }
+                ; function SetHeroesSelection(type) {
+                    $("input[id='heroes']").prop("checked", type == 0 ? false : true);
+                }
+                function tosignednumber(strornum) {
+                    if (!strornum)
+                        return "0";
+                    if (parseInt(strornum) > 0) {
+                        return "+" + strornum;
+                    }
+                    return "" + strornum;
+                }
+                var g_DlData = {};
+                function ShowRecord(type, oid) {
+                    if (g_DlData[oid] != null && g_DlData[oid].length >= 13) {
+                        let title = ""
+                            , content = "";
+                        if (type == 1) {
+                            title = "金币记录";
+                            let golds = 0
+                                , packs = 0;
+                            for (let i = 0, j = g_DlData[oid][10].length; i < j; i++) {
+                                golds += g_DlData[oid][10][i][1];
+                                packs += g_DlData[oid][10][i][2] ? g_DlData[oid][10][i][2] : 0;
+                            }
+                            content = "<table class='ctTable' width='100%' align='center' border='2' height='50' cellpadding='1' cellspacing='1' style='margin-top:0px'><thead><tr><th><a>时间</a></th><th><a>金币(" + tosignednumber(golds) + ")</a></th><th><a>卡包(" + tosignednumber(packs) + ")</a></th></tr></thead><tbody>";
+                            for (let i = 0, j = g_DlData[oid][10].length; i < j; i++) {
+                                content += "<tr><td style='width:130px;'>" + (new Date(parseInt(g_DlData[oid][10][i][0]) * 1000).toLocaleString()) + "</td><td>" + tosignednumber(g_DlData[oid][10][i][1]) + "</td><td>" + tosignednumber(g_DlData[oid][10][i][2]) + "</td></tr>";
+                            }
+                            content += "</tbody></table>";
+                        } else if (type == 2) {
+                            title = "经验记录";
+                            let exps = 0;
+                            for (let i = 0, j = g_DlData[oid][11].length; i < j; i++) {
+                                exps += g_DlData[oid][11][i][1];
+                            }
+                            content = "<table class='ctTable' width='100%' align='center' border='2' height='50' cellpadding='1' cellspacing='1' style='margin-top:0px'><thead><tr><th><a>时间</a></th><th><a>经验(" + tosignednumber(exps) + ")</a></th><th><a>等级</a></th></tr></thead><tbody>";
+                            for (let i = 0, j = g_DlData[oid][11].length; i < j; i++) {
+                                content += "<tr><td style='width:130px;'>" + (new Date(parseInt(g_DlData[oid][11][i][0]) * 1000).toLocaleString()) + "</td><td>" + tosignednumber(g_DlData[oid][11][i][1]) + "</td><td>" + (parseInt(g_DlData[oid][11][i][2]) + 1) + (g_DlData[oid][11][i][4] ? ("(" + g_DlData[oid][11][i][4] + ")") : "") + "</td></tr>";
+                            }
+                            content += "</tbody></table>";
+                        } else if (type == 3) {
+                            title = "对战记录";
+                            let wins = 0
+                                , exps = 0;
+                            for (let i = 0, j = g_DlData[oid][12].length; i < j; i++) {
+                                g_DlData[oid][12][i][1] == 1 ? wins++ : 0;
+                                exps += g_DlData[oid][12][i][2] ? g_DlData[oid][12][i][2] : 0;
+                            }
+                            wins = Math.floor(wins * 100 / g_DlData[oid][12].length);
+                            content = "<table class='ctTable' width='100%' align='center' border='2' height='50' cellpadding='1' cellspacing='1' style='margin-top:0px'><thead><tr><th><a>时间</a></th><th><a>经验(" + tosignednumber(exps) + ")</a></th></tr></thead><tbody>";
+                            for (let i = 0, j = g_DlData[oid][12].length; i < j; i++) {
+                                content += "<tr><td style='width:130px;'>" + (new Date(parseInt(g_DlData[oid][12][i][3]) * 1000).toLocaleString()) + "</td><td>" + tosignednumber(g_DlData[oid][12][i][2]) + "</td></tr>";
+                            }
+                            content += "</tbody></table>";
+                        }
+                        if (title.length > 0 && content.length > 0) {
+                            layer.open({
+                                type: 1,
+                                title: title,
+                                shadeClose: true,
+                                shade: 0.5,
+                                maxmin: false,
+                                resize: false,
+                                move: false,
+                                area: [type < 3 ? '350px' : '400px', type < 3 ? '400px' : '500px'],
+                                content: content
+                            });
+                        }
+                    }
+                }
+                function Appraisement(p1, p2, p3) {
+                    layer.open({
+                        type: 1,
+                        title: "",
+                        shadeClose: true,
+                        shade: 0.5,
+                        maxmin: false,
+                        resize: false,
+                        move: false,
+                        area: ['400px', '200px'],
+                        content: "<table width='100%' height='100%'><tr><td><div align='center' style='font-size:45px; color: red; font-weight: 800'>您的账号预估价为<br>" + Math.floor(p1) + " RMB</div><div align='center' style='font-size:20px;'>目前您的代练增值速度为每月" + p2 + "</div></td></tr></table>"
+                    });
+                }
+                $("#GO").click(function () {
+                    $("#result").html("");
+                    $.ajax({
+                        type: "POST",
+                        url: window.location.pathname,
+                        data: "key=" + $("#key").val(),
+                        success: function (retText) {
+                            var retJson = JSON.parse(retText);
+                            if (retJson.code == 1) {
+                                var data = retJson.data;
+                                for (var i = 0; i < data.length; i++) {
+                                    var JsonConfig = JSON.parse(data[i]["config"]);
+                                    if (JsonConfig == null)
+                                        $JsonConfig = {};
+                                    var DlData = {};
+                                    if (data[i]["dldata"] != null && data[i]["dldata"].length > 0) {
+                                        try {
+                                            DlData = JSON.parse(data[i]["dldata"]);
+                                        } catch (e) {
+                                            DlData = data[i]["dldata"].split(",");
+                                        }
+                                    }
+                                    for (var j = 0; j < 6; j++) {
+                                        if (j >= DlData.length)
+                                            DlData[j] = 0;
+                                    }
+                                    var CurDate = new Date();
+                                    if (parseInt(CurDate.getFullYear() + (CurDate.getMonth() + 1 < 10 ? "0" : "") + (CurDate.getMonth() + 1) + (CurDate.getDate() < 10 ? "0" : "") + CurDate.getDate()) != parseInt(DlData[3])) {
+                                        DlData[4] = DlData[5] = 0;
+                                    }
+                                    g_DlData[data[i]["oid"]] = DlData;
+                                    var result =
+                                        data[i]["am"] +
+                                        "<table class='ctTable' id='rtTable' width='100%' align='center' border='2' height='50' cellpadding='1' cellspacing='1'>" +
+                                        "<tr><td style='width:110px;font-size:15px;font-weight:bold'><div class='itemname'>订单编号</div></td><td style='font-size:15px;font-weight:bold;text-align:left' colspan='3'>" +
+                                        data[i]["oid"] +
+                                        "</td></tr>" +
+                                        "<tr><td style='width:110px;font-size:15px;font-weight:bold'><div class='itemname'>订单状态</div></td><td style='font-size:15px;font-weight:bold;text-align:left' colspan='3'><div style='display:inline-block;width:60%'>" +
+                                        (data[i]["banned"] == 0
+                                            ? data[i]["finish"] == 1
+                                                ? "已完成"
+                                                : "未完成"
+                                            : "订单已终止") +
+                                        "</div>" +
+                                        (data[i]["finish"] == 0 && data[i]["banned"] == 0
+                                            ? "<div style='display:inline-block;'><input type='button' style='font-size:13px;width:100px' class='btn-sm btn-primary' onclick='SetDlState(\"pause=" +
+                                            (JsonConfig["pause"] == null || JsonConfig["pause"] == "0" ? "1" : "0") +
+                                            "&oid=" +
+                                            data[i]["oid"] +
+                                            '","确定设置上号状态？")\' value=\'' +
+                                            (JsonConfig["pause"] == null || JsonConfig["pause"] == "0"
+                                                ? "暂停上号"
+                                                : "恢复上号") +
+                                            "'></div>"
+                                            : "") +
+                                        "</td></tr>" +
+                                        "<tr><td style='width:110px;font-size:15px;font-weight:bold'><div class='itemname'>到期时间</div></td><td style='font-size:15px;font-weight:bold;text-align:left' colspan='3'>" +
+                                        data[i]["edate"] +
+                                        "</td></tr>" +
+                                        "<tr><td style='width:110px;font-size:15px;font-weight:bold'><div class='itemname'>上号时间</div></td><td style='font-size:15px;font-weight:bold;text-align:left' colspan='3'>" +
+                                        data[i]["details"] +
+                                        "</td></tr>" +
+                                        (data[i]["finish"] == 0 && data[i]["banned"] == 0
+                                            ? "<tr><td style='width:110px;font-size:15px;font-weight:bold'><div class='itemname'>当前对战模式</div></td><td style='font-size:15px;font-weight:bold;text-align:left' colspan='3'><div style='display:inline-block;width:40%'>" +
+                                            (JsonConfig["battlemode"] == "1"
+                                                ? "休闲模式"
+                                                : JsonConfig["battlemode"] == "2"
+                                                    ? "标准模式"
+                                                    : JsonConfig["battlemode"] == "3"
+                                                        ? "狂野模式"
+                                                        : JsonConfig["battlemode"] == "4"
+                                                            ? "幻变模式"
+                                                            : JsonConfig["battlemode"] == "5"
+                                                                ? "酒馆模式"
+                                                                : "默认模式") +
+                                            "</div><div align='right' style='display:inline-block;'>" +
+                                            (JsonConfig["battlemode"] != "1"
+                                                ? "<input type='button' style='font-size:13px;width:50px' class='btn-sm btn-primary' onclick='SetDlBattleMode(\"battlemode=1&oid=" +
+                                                data[i]["oid"] +
+                                                "\",1)' value='休闲'>&nbsp;"
+                                                : "") +
+                                            (JsonConfig["battlemode"] != "2"
+                                                ? "<input type='button' style='font-size:13px;width:50px' class='btn-sm btn-primary' onclick='SetDlBattleMode(\"battlemode=2&oid=" +
+                                                data[i]["oid"] +
+                                                "\",2)' value='标准'>&nbsp;"
+                                                : "") +
+                                            (JsonConfig["battlemode"] != "3"
+                                                ? "<input type='button' style='font-size:13px;width:50px' class='btn-sm btn-primary' onclick='SetDlBattleMode(\"battlemode=3&oid=" +
+                                                data[i]["oid"] +
+                                                "\",3)' value='狂野'>&nbsp;"
+                                                : "") +
+                                            (JsonConfig["battlemode"] != "5"
+                                                ? "<input type='button' style='font-size:13px;width:50px' class='btn-sm btn-primary' onclick='SetDlBattleMode(\"battlemode=5&oid=" +
+                                                data[i]["oid"] +
+                                                "\",5)' value='酒馆'>"
+                                                : "") +
+                                            "</div></td></tr>" +
+                                            "<tr><td style='width:110px;font-size:15px;font-weight:bold'><div class='itemname'>当前对战英雄</div></td><td style='font-size:15px;font-weight:bold;text-align:left' colspan='3'>" +
+                                            "<div style='margin-bottom:8px;'>" +
+                                            "<input type='checkbox' id='heroes' value='1'  " +
+                                            (JsonConfig["battleheroes"] == null ||
+                                                parseInt(JsonConfig["battleheroes"]) & 0x001
+                                                ? "checked='checked'"
+                                                : "") +
+                                            " />战士" +
+                                            "&nbsp;&nbsp;" +
+                                            "<input type='checkbox' id='heroes' value='2'  " +
+                                            (JsonConfig["battleheroes"] == null ||
+                                                parseInt(JsonConfig["battleheroes"]) & 0x002
+                                                ? "checked='checked'"
+                                                : "") +
+                                            " />萨满" +
+                                            "&nbsp;&nbsp;" +
+                                            "<input type='checkbox' id='heroes' value='3'  " +
+                                            (JsonConfig["battleheroes"] == null ||
+                                                parseInt(JsonConfig["battleheroes"]) & 0x004
+                                                ? "checked='checked'"
+                                                : "") +
+                                            " />潜行" +
+                                            "&nbsp;&nbsp;" +
+                                            "<input type='checkbox' id='heroes' value='4'  " +
+                                            (JsonConfig["battleheroes"] == null ||
+                                                parseInt(JsonConfig["battleheroes"]) & 0x008
+                                                ? "checked='checked'"
+                                                : "") +
+                                            " />圣骑" +
+                                            "&nbsp;&nbsp;" +
+                                            "<input type='checkbox' id='heroes' value='5'  " +
+                                            (JsonConfig["battleheroes"] == null ||
+                                                parseInt(JsonConfig["battleheroes"]) & 0x010
+                                                ? "checked='checked'"
+                                                : "") +
+                                            " />猎人" +
+                                            "<br>" +
+                                            "<input type='checkbox' id='heroes' value='6'  " +
+                                            (JsonConfig["battleheroes"] == null ||
+                                                parseInt(JsonConfig["battleheroes"]) & 0x020
+                                                ? "checked='checked'"
+                                                : "") +
+                                            " />德鲁" +
+                                            "&nbsp;&nbsp;" +
+                                            "<input type='checkbox' id='heroes' value='7'  " +
+                                            (JsonConfig["battleheroes"] == null ||
+                                                parseInt(JsonConfig["battleheroes"]) & 0x040
+                                                ? "checked='checked'"
+                                                : "") +
+                                            " />术士" +
+                                            "&nbsp;&nbsp;" +
+                                            "<input type='checkbox' id='heroes' value='8'  " +
+                                            (JsonConfig["battleheroes"] == null ||
+                                                parseInt(JsonConfig["battleheroes"]) & 0x080
+                                                ? "checked='checked'"
+                                                : "") +
+                                            " />法师" +
+                                            "&nbsp;&nbsp;" +
+                                            "<input type='checkbox' id='heroes' value='9'  " +
+                                            (JsonConfig["battleheroes"] == null ||
+                                                parseInt(JsonConfig["battleheroes"]) & 0x100
+                                                ? "checked='checked'"
+                                                : "") +
+                                            " />牧师" +
+                                            "&nbsp;&nbsp;" +
+                                            "<input type='checkbox' id='heroes' value='10'  " +
+                                            (JsonConfig["battleheroes"] == null ||
+                                                parseInt(JsonConfig["battleheroes"]) & 0x200
+                                                ? "checked='checked'"
+                                                : "") +
+                                            " />恶魔" +
+                                            "<br>" +
+                                            "<input type='checkbox' id='heroes' value='11'  " +
+                                            (JsonConfig["battleheroes"] == null ||
+                                                parseInt(JsonConfig["battleheroes"]) & 0x400
+                                                ? "checked='checked'"
+                                                : "") +
+                                            " />死骑" +
+                                            "</div><div><div style='display:inline-block;width:60%'>" +
+                                            "<input type='button' style='font-size:13px;width:50px' class='btn-sm btn-primary' onclick='SetHeroesSelection(1)' value='全选'>&nbsp;" +
+                                            "<input type='button' style='font-size:13px;width:50px' class='btn-sm btn-primary' onclick='SetHeroesSelection(0)' value='清空'></div><div style='display:inline-block;'>" +
+                                            "<input type='button' style='font-size:13px;width:100px' class='btn-sm btn-primary' onclick='SetDlHeroes(\"oid=" +
+                                            data[i]["oid"] +
+                                            "\")' value='设置'>" +
+                                            "</div></div></td></tr>"
+                                            : "") +
+                                        "<tr><td style='width:110px;font-size:15px;font-weight:bold'><div class='itemname'>金币数量</div></td><td style='font-size:15px;font-weight:bold;text-align:left'><div style='display:inline-block;width:60%'>" +
+                                        data[i]["num1"] +
+                                        "</div>" +
+                                        "<div align='right' style='display:inline-block;'><input type='button' style='font-size:13px;width:100px' class='btn-sm btn-primary' onclick='ShowRecord(1,\"" +
+                                        data[i]["oid"] +
+                                        "\")' value='金币记录'></div>" +
+                                        "</td></tr>" +
+                                        "<tr><td style='width:110px;font-size:15px;font-weight:bold'><div class='itemname'>卡包数量</div></td><td style='font-size:15px;font-weight:bold;text-align:left'><div style='display:inline-block;width:60%'>" +
+                                        data[i]["num2"] +
+                                        "</div>" +
+                                        "</td></tr>" +
+                                        "<tr><td style='width:110px;font-size:15px;font-weight:bold'><div class='itemname'>奖励等级</div></td><td style='font-size:15px;font-weight:bold;text-align:left'><div style='display:inline-block;width:21%'>" +
+                                        (parseInt(data[i]["num3"]) + 1) +
+                                        "</div>" +
+                                        "<div align='right' style='display:inline-block;'>" +
+                                        "<input type='button' style='font-size:13px;width:100px' class='btn-sm btn-primary' onclick='SetDlState(\"auto=" +
+                                        (JsonConfig["auto"] == null || JsonConfig["auto"] == "0" ? "1" : "0") +
+                                        "&oid=" +
+                                        data[i]["oid"] +
+                                        '","确定设置奖励领取方式？")\' value=\'' +
+                                        (JsonConfig["auto"] == null || JsonConfig["auto"] == "0"
+                                            ? "设置自动领取"
+                                            : "设置手动领取") +
+                                        "'>&nbsp;" +
+                                        "<input type='button' style='font-size:13px;width:100px' class='btn-sm btn-primary' onclick='ShowRecord(2,\"" +
+                                        data[i]["oid"] +
+                                        "\")' value='经验记录'>" +
+                                        "</div></td></tr>" +
+                                        (data[i]["finish"] == 0 && data[i]["banned"] == 0
+                                            ? "<tr><td style='width:110px;font-size:15px;font-weight:bold'><div class='itemname'>今日对战数</div></td><td style='font-size:15px;font-weight:bold;text-align:left'><div style='display:inline-block;width:60%'>" +
+                                            (parseInt(DlData[4]) + parseInt(DlData[5])) +
+                                            "</div>" +
+                                            "<div align='right' style='display:inline-block;'><input type='button' style='font-size:13px;width:100px' class='btn-sm btn-primary' onclick='ShowRecord(3,\"" +
+                                            data[i]["oid"] +
+                                            "\")' value='对战记录'></div>" +
+                                            "</td></tr>" +
+                                            "<tr><td style='width:110px;font-size:15px;font-weight:bold'><div class='itemname'>备注</div></td><td style='font-size:15px;font-weight:bold;text-align:left'>" +
+                                            data[i]["remark"] +
+                                            "</td></tr>"
+                                            : "") +
+                                        "</table>";
+                                    $("#result").append(result)
+                                }
+                            } else {
+                                layer.alert(retJson.error);
+                            }
+                        },
+                        error: function () { }
+                    });
+                });
+            </script>
+</body>
+
+</html>
