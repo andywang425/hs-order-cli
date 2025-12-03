@@ -1,14 +1,15 @@
 //! 工具函数模块
 
-use chrono::{Local, TimeZone};
+use chrono::TimeZone;
+use chrono_tz::Asia::Shanghai;
 
-/// 格式化时间戳为可读格式
+/// 格式化时间戳为可读格式（使用北京时间 UTC+8）
 pub fn format_timestamp(timestamp: i64) -> String {
     if timestamp == 0 {
         return "未知时间".to_string();
     }
 
-    match Local.timestamp_opt(timestamp, 0) {
+    match Shanghai.timestamp_opt(timestamp, 0) {
         chrono::LocalResult::Single(dt) => dt.format("%Y-%m-%d %H:%M:%S").to_string(),
         _ => "时间格式错误".to_string(),
     }

@@ -3,9 +3,9 @@
 use crate::constants::*;
 use crate::models::{BattleRecord, DlData, ExpRecord, GoldRecord, OrderConfig};
 use crate::utils::{format_signed, format_timestamp};
-use anyhow::Result;
-use anyhow::{Context, anyhow, bail};
+use anyhow::{Context, Result, anyhow, bail};
 use chrono::Local;
+use chrono_tz::Asia::Shanghai;
 
 /// 解析config字段（订单配置信息）
 pub fn parse_order_config(config_str: &str) -> Result<OrderConfig> {
@@ -39,7 +39,11 @@ pub fn parse_dldata(dldata_str: &str) -> Result<DlData> {
 
 /// 计算今日对战次数
 fn calculate_today_battles(arr: &[serde_json::Value]) -> usize {
-    let today = Local::now().format("%Y%m%d").to_string();
+    let today = Local::now()
+        .with_timezone(&Shanghai)
+        .format("%Y%m%d")
+        .to_string();
+
     let date_str = arr.get(DATE_INDEX).and_then(|v| {
         v.as_str()
             .map(|s| s.to_string())
@@ -216,7 +220,7 @@ mod tests {
 
     #[test]
     fn test_parse_dldata_ok() {
-        let now = chrono::Local::now();
+        let now = chrono::Local::now().with_timezone(&Shanghai);
         let today = now.format("%Y%m%d").to_string();
         let timestamp = now.timestamp().to_string();
         let mut arr = vec![json!(null); 13];
