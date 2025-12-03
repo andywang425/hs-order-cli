@@ -141,22 +141,22 @@ fn main() -> Result<()> {
 
         println!("订单编号 {}", oid.bright_cyan());
 
-        if let Some(mode_input) = cli.actions.mode {
-            if let Err(e) = set_battle_mode(&oid, mode_input, cli.pwd.as_deref().unwrap()) {
-                print_error("设置对战模式失败", &e);
-            }
+        if let Some(mode_input) = cli.actions.mode
+            && let Err(e) = set_battle_mode(&oid, mode_input, cli.pwd.as_deref().unwrap())
+        {
+            print_error("设置对战模式失败", &e);
         }
 
-        if let Some(hero_inputs) = cli.actions.hero.as_deref() {
-            if let Err(e) = set_current_hero(&oid, hero_inputs, cli.pwd.as_deref().unwrap()) {
-                print_error("设置对战英雄失败", &e);
-            }
+        if let Some(hero_inputs) = cli.actions.hero.as_deref()
+            && let Err(e) = set_current_hero(&oid, hero_inputs, cli.pwd.as_deref().unwrap())
+        {
+            print_error("设置对战英雄失败", &e);
         }
 
-        if let Some(auto_input) = cli.actions.auto {
-            if let Err(e) = set_auto_claim(&oid, auto_input, cli.pwd.as_deref().unwrap()) {
-                print_error("设置自动领取奖励失败", &e);
-            }
+        if let Some(auto_input) = cli.actions.auto
+            && let Err(e) = set_auto_claim(&oid, auto_input, cli.pwd.as_deref().unwrap())
+        {
+            print_error("设置自动领取奖励失败", &e);
         }
 
         return Ok(());
