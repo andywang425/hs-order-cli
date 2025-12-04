@@ -108,15 +108,15 @@ fn get_auto_claim_text(auto: &Option<String>) -> ColoredString {
 }
 
 /// 显示游戏数据统计
-pub fn display_game_data(dl_data: &DlData) -> Result<()> {
-    display_gold_statistics(&dl_data.gold_records);
-    display_exp_statistics(&dl_data.exp_records);
-    display_battle_statistics(&dl_data.battle_records);
+pub fn display_game_data(dl_data: &DlData, table_size: usize) -> Result<()> {
+    display_gold_statistics(&dl_data.gold_records, table_size);
+    display_exp_statistics(&dl_data.exp_records, table_size);
+    display_battle_statistics(&dl_data.battle_records, table_size);
     Ok(())
 }
 
 /// 显示金币统计
-fn display_gold_statistics(gold_records: &[GoldRecord]) {
+fn display_gold_statistics(gold_records: &[GoldRecord], table_size: usize) {
     println!("{}", "金币统计".bright_yellow().bold());
     print_line();
 
@@ -138,11 +138,11 @@ fn display_gold_statistics(gold_records: &[GoldRecord]) {
     );
     println!();
 
-    display_records_table(gold_records, "金币记录");
+    display_records_table(gold_records, "金币记录", table_size);
 }
 
 /// 显示经验统计
-fn display_exp_statistics(exp_records: &[ExpRecord]) {
+fn display_exp_statistics(exp_records: &[ExpRecord], table_size: usize) {
     println!("{}", "经验统计".bright_purple().bold());
     print_line();
 
@@ -159,11 +159,11 @@ fn display_exp_statistics(exp_records: &[ExpRecord]) {
     );
     println!();
 
-    display_records_table(exp_records, "经验记录");
+    display_records_table(exp_records, "经验记录", table_size);
 }
 
 /// 显示对战统计
-fn display_battle_statistics(battle_records: &[BattleRecord]) {
+fn display_battle_statistics(battle_records: &[BattleRecord], table_size: usize) {
     println!("{}", "对战统计".bright_red().bold());
     print_line();
 
@@ -187,7 +187,7 @@ fn display_battle_statistics(battle_records: &[BattleRecord]) {
     println!("对战经验: {} 点", format_signed(total_exp).bright_purple());
     println!();
 
-    display_records_table(battle_records, "对战记录");
+    display_records_table(battle_records, "对战记录", table_size);
 }
 
 /// 计算金币总计
@@ -230,13 +230,13 @@ fn calculate_battle_stats(battle_records: &[BattleRecord]) -> (usize, usize, usi
 }
 
 /// 显示记录表格
-fn display_records_table<T: Tabled>(records: &[T], record_type: &str) {
-    if records.is_empty() {
+fn display_records_table<T: Tabled>(records: &[T], record_type: &str, table_size: usize) {
+    if records.is_empty() || table_size == 0 {
         return;
     }
 
-    let display_records = if records.len() > MAX_DISPLAY_RECORDS {
-        &records[..MAX_DISPLAY_RECORDS]
+    let display_records = if records.len() > table_size {
+        &records[..table_size]
     } else {
         records
     };
