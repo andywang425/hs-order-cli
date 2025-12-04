@@ -29,13 +29,9 @@ pub const RETRY_BASE_MS: u64 = 200;
 /// 成功响应代码
 pub const SUCCESS_CODE: i32 = 1;
 
-/// 最大显示记录数
-pub const MAX_DISPLAY_RECORDS: usize = 10;
-
+// 数据索引常量
 /// 基本信息数组大小
 pub const BASIC_INFO_SIZE: usize = 10;
-
-// 数据索引常量
 /// 金币记录索引
 pub const GOLD_RECORDS_INDEX: usize = 10;
 /// 经验记录索引

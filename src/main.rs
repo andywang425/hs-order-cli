@@ -32,13 +32,23 @@ struct Cli {
     #[command(flatten)]
     actions: Actions,
 
+    #[arg(
+        short = 't',
+        long = "table-size",
+        value_name = "NUM",
+        default_value_t = 10,
+        help = "游戏数据统计表格显示的最大记录条数",
+        long_help = "游戏数据统计表格显示的最大记录条数，默认值为 10\n\nALL 表示显示所有记录，0 表示不显示表格",
+        value_parser = parse_table_size
+    )]
+    table_size: usize,
+
     #[arg(short, long, help = "战网密码前4位", value_parser = parse_pwd4)]
     pwd: Option<String>,
 
     #[arg(
         short,
         long,
-        default_value_t = false,
         help = "跳过查询订单数据",
         long_help = "跳过查询订单数据\n\n仅在传入订单相关操作选项时有效，直接将传入的订单号作为订单编号"
     )]
@@ -116,7 +126,7 @@ fn main() -> Result<()> {
     print_header();
 
     if cli.actions.query {
-        match process_order(order_id) {
+        match process_order(order_id, cli.table_size) {
             Ok(_) => {
                 println!("{}", "查询完成！".bright_green());
             }
@@ -166,14 +176,14 @@ fn main() -> Result<()> {
 }
 
 /// 处理单个订单查询
-fn process_order(order_id: &str) -> Result<()> {
+fn process_order(order_id: &str, table_size: usize) -> Result<()> {
     println!("正在查询订单: {}\n", order_id.bright_cyan());
 
     let order = fetch_order_data(order_id).context("获取订单数据接口失败")?;
     let config = parse_order_config(&order.config).context("解析订单配置信息失败")?;
     let dldata = parse_dldata(&order.dldata).context("解析游戏统计数据失败")?;
     display_order_info(&order, &config, &dldata).context("显示订单基本信息失败")?;
-    display_game_data(&dldata).context("显示游戏数据失败")?;
+    display_game_data(&dldata, table_size).context("显示游戏数据失败")?;
 
     Ok(())
 }
@@ -290,6 +300,17 @@ fn parse_order_id(s: &str) -> std::result::Result<String, String> {
     }
 }
 
+/// 解析游戏数据统计表格显示的最大记录条数
+fn parse_table_size(s: &str) -> std::result::Result<usize, String> {
+    if s.to_lowercase() == "all" {
+        Ok(usize::MAX)
+    } else if let Ok(num) = s.parse::<usize>() {
+        Ok(num)
+    } else {
+        Err("游戏数据统计表格显示的最大记录条数必须为整数或ALL".to_string())
+    }
+}
+
 /// 解析战网密码前4位
 fn parse_pwd4(s: &str) -> std::result::Result<String, String> {
     if s.len() == 4 {
@@ -354,6 +375,25 @@ mod tests {
     fn test_parse_order_id_err() {
         let r = parse_order_id("abc123");
         assert!(matches!(r, Err(e) if e == "订单号必须为纯数字"));
+    }
+
+    #[test]
+    fn test_parse_table_size_ok() {
+        let s = "30";
+        let r = parse_table_size(s);
+        assert_eq!(r.unwrap(), 30);
+    }
+
+    #[test]
+    fn test_parse_table_size_all() {
+        let r = parse_table_size("all");
+        assert_eq!(r.unwrap(), usize::MAX);
+    }
+
+    #[test]
+    fn test_parse_table_size_err() {
+        let r = parse_table_size("abc");
+        assert!(matches!(r, Err(e) if e == "游戏数据统计表格显示的最大记录条数必须为整数或ALL"));
     }
 
     #[test]
